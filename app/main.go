@@ -6,7 +6,10 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 )
+
+var DB sync.Map = sync.Map{}
 
 type CommandFunc func(args []string) string
 
@@ -121,6 +124,26 @@ func main() {
 				return args[0] // ECHO <msg>
 			}
 			return ""
+		},
+		"SET": func(args []string) string {
+			if len(args) < 2 {
+				return "ERR wrong number of arguments for 'SET'"
+			}
+			key := args[0]
+			value := args[1]
+			DB.Store(key, value)
+			return "OK"
+		},
+		"GET": func(args []string) string {
+			if len(args) < 1 {
+				return "ERR wrong number of arguments for 'GET'"
+			}
+			key := args[0]
+			value, ok := DB.Load(key)
+			if ok {
+				return value.(string)
+			}
+			return "" // Redis returns nil as empty string in our simplified version
 		},
 	}
 
