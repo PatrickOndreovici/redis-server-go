@@ -24,5 +24,5 @@ func main() {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
-	c.Write([]byte("+PONG\\r\\n"))
+	c.Write([]byte("+PONG\r\n"))
 }
