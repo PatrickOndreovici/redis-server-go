@@ -65,7 +65,7 @@ func (ls *ListsStore) LPush(key string, values ...string) int {
 	defer ls.mutex.Unlock()
 	newArr := make([]string, len(ls.data[key])+len(values))
 	for i, value := range values {
-		newArr[i] = value
+		newArr[len(values)-i-1] = value
 	}
 	copy(newArr[len(values):], ls.data[key])
 	ls.data[key] = newArr
