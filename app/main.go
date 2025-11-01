@@ -142,7 +142,7 @@ func main() {
 			if len(args) > 3 {
 				if strings.ToUpper(args[2]) == "PX" {
 					milis, err := strconv.Atoi(args[3])
-					if err != nil {
+					if err == nil {
 						value.expire_at = value.created_at + int64(milis)
 					}
 				}
