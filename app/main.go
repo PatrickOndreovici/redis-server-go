@@ -204,11 +204,14 @@ func main() {
 				return "ERR wrong number of arguments for 'RPUSH'"
 			}
 			key := args[0]
-			value := args[1]
 
-			newLen := listStore.RPush(key, value)
+			var length int = 0
 
-			return fmt.Sprintf(":%d", newLen)
+			for _, arg := range args[1:] {
+				length = listStore.RPush(key, arg)
+			}
+			
+			return fmt.Sprintf(":%d", length)
 		},
 	}
 
