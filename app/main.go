@@ -261,7 +261,14 @@ func main() {
 				return "", errors.New("ERR wrong number of arguments for 'LPOP'")
 			}
 			key := args[0]
-			return listStore.LPop(key), nil
+			numberOfPos := 1
+			if len(args) > 1 {
+				n, err := strconv.Atoi(args[1])
+				if err == nil {
+					numberOfPos = n
+				}
+			}
+			return listStore.LPop(key, numberOfPos), nil
 		},
 	}
 

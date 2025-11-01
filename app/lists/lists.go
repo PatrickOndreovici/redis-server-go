@@ -79,13 +79,19 @@ func (ls *ListsStore) GetLength(key string) int {
 	return length
 }
 
-func (ls *ListsStore) LPop(key string) string {
+func (ls *ListsStore) LPop(key string, numberOfPops int) []string {
 	ls.mutex.Lock()
 	defer ls.mutex.Unlock()
 	if len(ls.data[key]) == 0 {
-		return ""
+		return []string{}
 	}
-	var removedValue = ls.data[key][0]
-	ls.data[key] = ls.data[key][1:]
+	if numberOfPops <= 0 {
+		return []string{}
+	}
+	if numberOfPops > len(ls.data[key]) {
+		numberOfPops = len(ls.data[key])
+	}
+	var removedValue = ls.data[key][0:numberOfPops]
+	ls.data[key] = ls.data[key][numberOfPops:]
 	return removedValue
 }
