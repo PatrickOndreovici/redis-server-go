@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var DB sync.Map = sync.Map{}
@@ -17,6 +19,12 @@ type Protocol struct {
 	conn     net.Conn
 	reader   *bufio.Reader
 	commands map[string]CommandFunc
+}
+
+type StoreValue struct {
+	value      string
+	created_at int64
+	expire_at  int64
 }
 
 func (p *Protocol) readBulkString(length int) (string, error) {
@@ -130,7 +138,15 @@ func main() {
 				return "ERR wrong number of arguments for 'SET'"
 			}
 			key := args[0]
-			value := args[1]
+			value := StoreValue{args[1], time.Now().UnixMilli(), -1}
+			if len(args) > 3 {
+				if strings.ToUpper(args[2]) == "PX" {
+					milis, err := strconv.Atoi(args[3])
+					if err != nil {
+						value.expire_at = value.created_at + int64(milis)
+					}
+				}
+			}
 			DB.Store(key, value)
 			return "OK"
 		},
@@ -140,10 +156,20 @@ func main() {
 			}
 			key := args[0]
 			value, ok := DB.Load(key)
-			if ok {
-				return value.(string)
+
+			if !ok {
+				return ""
 			}
-			return "" // Redis returns nil as empty string in our simplified version
+
+			sv, ok := value.(StoreValue)
+			if !ok {
+				return ""
+			}
+			if time.Now().UnixMilli() > sv.expire_at {
+				return ""
+			}
+
+			return sv.value
 		},
 	}
 
