@@ -9,9 +9,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/codecrafters-io/redis-starter-go/app/lists"
 )
 
 var DB sync.Map = sync.Map{}
+var Lists = make(map[string][]string)
 
 type CommandFunc func(args []string) string
 
@@ -134,6 +137,7 @@ func (p *Protocol) Handle() {
 }
 
 func main() {
+	listStore := lists.NewListsStore()
 	commands := map[string]CommandFunc{
 		"PING": func(args []string) string {
 			if len(args) > 0 {
@@ -191,6 +195,17 @@ func main() {
 			}
 
 			return sv.value
+		},
+		"RPUSH": func(args []string) string {
+			if len(args) < 2 {
+				return "ERR wrong number of arguments for 'RPUSH'"
+			}
+			key := args[0]
+			value := args[1]
+
+			newLen := listStore.RPush(key, value)
+
+			return fmt.Sprintf(":%d", newLen)
 		},
 	}
 
