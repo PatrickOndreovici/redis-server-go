@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -14,9 +15,9 @@ import (
 )
 
 var DB sync.Map = sync.Map{}
-var Lists = make(map[string][]string)
 
-type CommandFunc func(args []string) string
+type CommandResult interface{}
+type CommandFunc func(args []string) (CommandResult, error)
 
 type Protocol struct {
 	conn     net.Conn
@@ -25,9 +26,9 @@ type Protocol struct {
 }
 
 type StoreValue struct {
-	value      string
-	created_at int64
-	expire_at  int64
+	value     string
+	createdAt int64
+	expireAt  int64
 }
 
 // Reads exactly N bytes + discards trailing CRLF
@@ -102,6 +103,13 @@ func (p *Protocol) WriteBulkString(s string) {
 	p.conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)))
 }
 
+func (p *Protocol) WriteArray(items []string) {
+	p.conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(items))))
+	for _, item := range items {
+		p.WriteBulkString(item)
+	}
+}
+
 // Handle one client
 func (p *Protocol) Handle() {
 	defer p.conn.Close()
@@ -120,98 +128,116 @@ func (p *Protocol) Handle() {
 			continue
 		}
 
-		response := handler(args[1:])
+		response, err := handler(args[1:])
 
-		// Determine correct response type
-		switch cmd {
-		case "PING", "SET":
-			p.WriteSimpleString(response)
-		case "RPUSH":
-			// Response is already in integer format ":<number>"
-			p.conn.Write([]byte(response + "\r\n"))
-		default:
-			if strings.HasPrefix(response, "ERR") {
-				p.WriteError(response)
+		if err != nil {
+			p.WriteError(err.Error())
+			continue
+		}
+
+		// Use type switch to handle different response types
+		switch v := response.(type) {
+		case string:
+			// Check if it's an integer response (like ":123")
+			if strings.HasPrefix(v, ":") {
+				p.conn.Write([]byte(v + "\r\n"))
+			} else if cmd == "PING" || cmd == "SET" {
+				p.WriteSimpleString(v)
 			} else {
-				p.WriteBulkString(response)
+				p.WriteBulkString(v)
 			}
+		case int:
+			p.conn.Write([]byte(fmt.Sprintf(":%d\r\n", v)))
+		case []string:
+			p.WriteArray(v)
+		default:
+			p.WriteError("ERR internal server error: unexpected return type")
 		}
 	}
 }
-
 func main() {
 	listStore := lists.NewListsStore()
 	commands := map[string]CommandFunc{
-		"PING": func(args []string) string {
-			if len(args) > 0 {
-				return args[0]
-			}
-			return "PONG"
+		"PING": func(args []string) (CommandResult, error) {
+			return "PONG", nil
 		},
-		"ECHO": func(args []string) string {
-			if len(args) > 0 {
-				return args[0]
+		"ECHO": func(args []string) (CommandResult, error) {
+			if len(args) == 0 {
+				return "", errors.New("ECHO requires at least one argument")
 			}
-			return ""
+			return args[0], nil
 		},
-		"SET": func(args []string) string {
+		"SET": func(args []string) (CommandResult, error) {
 			if len(args) < 2 {
-				return "ERR wrong number of arguments for 'SET'"
+				return "", errors.New("ERR wrong number of arguments for 'SET'")
 			}
 			key := args[0]
 			value := StoreValue{
-				value:      args[1],
-				created_at: time.Now().UnixMilli(),
-				expire_at:  -1,
+				value:     args[1],
+				createdAt: time.Now().UnixMilli(),
+				expireAt:  -1,
 			}
 
 			if len(args) > 3 && strings.ToUpper(args[2]) == "PX" {
 				millis, err := strconv.Atoi(args[3])
 				if err == nil {
-					value.expire_at = value.created_at + int64(millis)
+					value.expireAt = value.createdAt + int64(millis)
 				} else {
-					return "ERR invalid PX value"
+					return "", errors.New("ERR invalid PX value")
 				}
 			}
 
 			DB.Store(key, value)
-			return "OK"
+			return "OK", nil
 		},
-		"GET": func(args []string) string {
+		"GET": func(args []string) (CommandResult, error) {
 			if len(args) < 1 {
-				return "ERR wrong number of arguments for 'GET'"
+				return "", errors.New("ERR wrong number of arguments for 'GET'")
 			}
 			key := args[0]
 			value, ok := DB.Load(key)
 			if !ok {
-				return "" // null bulk string
+				return "", nil
 			}
 
 			sv, ok := value.(StoreValue)
 			if !ok {
-				return "ERR internal type mismatch"
+				return "", errors.New("ERR invalid value type")
 			}
 
-			if sv.expire_at > 0 && time.Now().UnixMilli() > sv.expire_at {
+			if sv.expireAt > 0 && time.Now().UnixMilli() > sv.expireAt {
 				DB.Delete(key)
-				return "" // expired → null bulk string
+				return "", nil
 			}
 
-			return sv.value
+			return sv.value, nil
 		},
-		"RPUSH": func(args []string) string {
+		"RPUSH": func(args []string) (CommandResult, error) {
 			if len(args) < 2 {
-				return "ERR wrong number of arguments for 'RPUSH'"
+				return "", errors.New("ERR wrong number of arguments for 'RPUSH'")
 			}
 			key := args[0]
 
-			var length int = 0
+			length := listStore.RPush(key, args[1:]...)
 
-			for _, arg := range args[1:] {
-				length = listStore.RPush(key, arg)
+			return fmt.Sprintf(":%d", length), nil
+		},
+		"LRANGE": func(args []string) (CommandResult, error) {
+			if len(args) < 3 {
+				return "", errors.New("ERR wrong number of arguments for 'LRANGE'")
 			}
-			
-			return fmt.Sprintf(":%d", length)
+			key := args[0]
+			start, err := strconv.Atoi(args[1])
+			if err != nil {
+				return "", errors.New("ERR wrong number of arguments for 'LRANGE'")
+			}
+			end, err := strconv.Atoi(args[2])
+			if err != nil {
+				return "", errors.New("ERR wrong number of arguments for 'LRANGE'")
+			}
+
+			return listStore.LRange(key, start, end), nil
+
 		},
 	}
 
