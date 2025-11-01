@@ -71,3 +71,10 @@ func (ls *ListsStore) LPush(key string, values ...string) int {
 	ls.data[key] = newArr
 	return len(ls.data[key])
 }
+
+func (ls *ListsStore) GetLength(key string) int {
+	ls.mutex.Lock()
+	defer ls.mutex.Unlock()
+	length := len(ls.data[key])
+	return length
+}

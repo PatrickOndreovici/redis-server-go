@@ -249,6 +249,13 @@ func main() {
 
 			return fmt.Sprintf(":%d", length), nil
 		},
+		"LLEN": func(args []string) (CommandResult, error) {
+			if len(args) < 1 {
+				return "", errors.New("ERR wrong number of arguments for 'LLEN'")
+			}
+			key := args[0]
+			return listStore.GetLength(key), nil
+		},
 	}
 
 	fmt.Println("Server running on port 6379")
