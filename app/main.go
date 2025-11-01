@@ -119,11 +119,16 @@ func (p *Protocol) Handle() {
 
 		response := handler(args[1:])
 
-		// If it’s an error string, send as error; otherwise as bulk
-		if strings.HasPrefix(response, "ERR") {
-			p.WriteError(response)
-		} else {
-			p.WriteBulkString(response)
+		// Determine correct response type
+		switch cmd {
+		case "PING", "SET":
+			p.WriteSimpleString(response)
+		default:
+			if strings.HasPrefix(response, "ERR") {
+				p.WriteError(response)
+			} else {
+				p.WriteBulkString(response)
+			}
 		}
 	}
 }
