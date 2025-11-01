@@ -256,6 +256,13 @@ func main() {
 			key := args[0]
 			return listStore.GetLength(key), nil
 		},
+		"LPOP": func(args []string) (CommandResult, error) {
+			if len(args) < 1 {
+				return "", errors.New("ERR wrong number of arguments for 'LPOP'")
+			}
+			key := args[0]
+			return listStore.LPop(key), nil
+		},
 	}
 
 	fmt.Println("Server running on port 6379")
