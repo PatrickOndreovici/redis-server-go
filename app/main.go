@@ -126,6 +126,9 @@ func (p *Protocol) Handle() {
 		switch cmd {
 		case "PING", "SET":
 			p.WriteSimpleString(response)
+		case "RPUSH":
+			// Response is already in integer format ":<number>"
+			p.conn.Write([]byte(response + "\r\n"))
 		default:
 			if strings.HasPrefix(response, "ERR") {
 				p.WriteError(response)
