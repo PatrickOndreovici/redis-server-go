@@ -268,7 +268,11 @@ func main() {
 					numberOfPos = n
 				}
 			}
-			return listStore.LPop(key, numberOfPos), nil
+			res := listStore.LPop(key, numberOfPos)
+			if len(res) == 1 {
+				return res[0], nil
+			}
+			return res, nil
 		},
 	}
 
