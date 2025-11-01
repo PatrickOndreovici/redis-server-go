@@ -239,6 +239,16 @@ func main() {
 			return listStore.LRange(key, start, end), nil
 
 		},
+		"LPUSH": func(args []string) (CommandResult, error) {
+			if len(args) < 2 {
+				return "", errors.New("ERR wrong number of arguments for 'RPUSH'")
+			}
+			key := args[0]
+
+			length := listStore.LPush(key, args[1:]...)
+
+			return fmt.Sprintf(":%d", length), nil
+		},
 	}
 
 	fmt.Println("Server running on port 6379")

@@ -59,3 +59,15 @@ func (ls *ListsStore) LRange(key string, start, end int) []string {
 
 	return result
 }
+
+func (ls *ListsStore) LPush(key string, values ...string) int {
+	ls.mutex.Lock()
+	defer ls.mutex.Unlock()
+	newArr := make([]string, len(ls.data[key])+len(values))
+	for i, value := range values {
+		newArr[i] = value
+	}
+	copy(newArr[len(values):], ls.data[key])
+	ls.data[key] = newArr
+	return len(ls.data[key])
+}
