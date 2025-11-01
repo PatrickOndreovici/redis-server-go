@@ -86,6 +86,6 @@ func (ls *ListsStore) LPop(key string) string {
 		return ""
 	}
 	var removedValue = ls.data[key][0]
-	ls.data[key] = ls.data[key[1:]]
+	ls.data[key] = ls.data[key][1:]
 	return removedValue
 }
