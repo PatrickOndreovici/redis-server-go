@@ -28,8 +28,9 @@ func (ls *ListsStore) RPush(key string, values ...string) int {
 	ls.mutex.Lock()
 	defer ls.mutex.Unlock()
 	ls.data[key] = append(ls.data[key], values...)
+	length := len(ls.data[key])
 	ls.wakeOldestWaiter(key)
-	return len(ls.data[key])
+	return length
 }
 
 func (ls *ListsStore) LRange(key string, start, end int) []string {
@@ -79,8 +80,9 @@ func (ls *ListsStore) LPush(key string, values ...string) int {
 	}
 	copy(newArr[len(values):], ls.data[key])
 	ls.data[key] = newArr
+	length := len(ls.data[key])
 	ls.wakeOldestWaiter(key)
-	return len(ls.data[key])
+	return length
 }
 
 func (ls *ListsStore) GetLength(key string) int {
