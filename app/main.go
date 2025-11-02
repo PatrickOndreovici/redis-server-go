@@ -135,6 +135,11 @@ func (p *Protocol) Handle() {
 			continue
 		}
 
+		if response == nil {
+			p.conn.Write([]byte("*-1\r\n")) // null array
+			continue
+		}
+
 		// Use type switch to handle different response types
 		switch v := response.(type) {
 		case string:
