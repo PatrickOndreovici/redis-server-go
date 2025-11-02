@@ -285,7 +285,7 @@ func main() {
 			}
 
 			key := args[0]
-			timeoutSec, err := strconv.ParseFloat(args[1], 64) // allow decimals like 0.1
+			timeoutSec, err := strconv.ParseFloat(args[1], 64)
 			if err != nil {
 				return "", errors.New("ERR invalid timeout for 'BLPOP'")
 			}
@@ -294,7 +294,7 @@ func main() {
 
 			value := listStore.BLPop(key, timeout)
 			if value == "" {
-				return nil, nil // timeout → null array
+				return nil, nil
 			}
 
 			return []string{key, value}, nil

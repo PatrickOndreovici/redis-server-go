@@ -134,12 +134,18 @@ func (ls *ListsStore) BLPop(key string, timeout time.Duration) string {
 	ls.waiters[key] = append(ls.waiters[key], waiter)
 	ls.mutex.Unlock()
 
+	if timeout == 0 {
+		select {
+		case value := <-waiter.ch:
+			return value
+		}
+	}
+
 	// Wait for either a push or timeout
 	select {
 	case value := <-waiter.ch:
 		return value
 	case <-time.After(timeout):
-		// Timeout: remove the waiter from the queue
 		ls.mutex.Lock()
 		queue := ls.waiters[key]
 		newQueue := make([]*Waiter, 0, len(queue))
@@ -154,7 +160,7 @@ func (ls *ListsStore) BLPop(key string, timeout time.Duration) string {
 			ls.waiters[key] = newQueue
 		}
 		ls.mutex.Unlock()
-		return "" // empty string indicates timeout
+		return ""
 	}
 }
 
