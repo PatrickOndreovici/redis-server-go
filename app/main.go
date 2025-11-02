@@ -278,8 +278,26 @@ func main() {
 			if len(args) < 2 {
 				return "", errors.New("ERR wrong number of arguments for 'BLPOP'")
 			}
+			key := args[0]
+			timeoutSec, err := strconv.Atoi(args[1])
+			if err != nil {
+				return "", errors.New("ERR invalid timeout for 'BLPOP'")
+			}
 
-		}
+			var timeout time.Duration
+			if timeoutSec == 0 {
+				timeout = 0 // 0 means block indefinitely
+			} else {
+				timeout = time.Duration(timeoutSec) * time.Second
+			}
+
+			value := listStore.BLPop(key, timeout)
+			if value == "" {
+				return nil, nil // timeout → null array
+			}
+
+			return []string{key, value}, nil // RESP array [key, value]
+		},
 	}
 
 	fmt.Println("Server running on port 6379")
