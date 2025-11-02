@@ -112,7 +112,7 @@ func (ls *ListsStore) LPop(key string, numberOfPops int) []string {
 func (ls *ListsStore) BLPop(key string, timeout time.Duration) string {
 	ls.mutex.Lock()
 
-	// Fast path: list already has elements
+	// If list already has elements, pop immediately
 	if len(ls.data[key]) > 0 {
 		value := ls.data[key][0]
 		ls.data[key] = ls.data[key][1:]
@@ -120,45 +120,41 @@ func (ls *ListsStore) BLPop(key string, timeout time.Duration) string {
 		return value
 	}
 
-	// Setup waiter
+	// List is empty, create a waiter
 	waiter := &Waiter{
 		key:       key,
 		ch:        make(chan string, 1),
 		createdAt: time.Now(),
 		expire:    time.Now().Add(timeout),
 	}
+
 	if ls.waiters == nil {
 		ls.waiters = make(map[string][]*Waiter)
 	}
 	ls.waiters[key] = append(ls.waiters[key], waiter)
 	ls.mutex.Unlock()
 
-	// Wait for push or timeout
-	if timeout == 0 {
-		// Block indefinitely
-		return <-waiter.ch
-	} else {
-		select {
-		case value := <-waiter.ch:
-			return value
-		case <-time.After(timeout):
-			// Remove waiter on timeout
-			ls.mutex.Lock()
-			defer ls.mutex.Unlock()
-			queue := ls.waiters[key]
-			newQueue := make([]*Waiter, 0, len(queue))
-			for _, w := range queue {
-				if w != waiter {
-					newQueue = append(newQueue, w)
-				}
+	// Wait for either a push or timeout
+	select {
+	case value := <-waiter.ch:
+		return value
+	case <-time.After(timeout):
+		// Timeout: remove the waiter from the queue
+		ls.mutex.Lock()
+		queue := ls.waiters[key]
+		newQueue := make([]*Waiter, 0, len(queue))
+		for _, w := range queue {
+			if w != waiter {
+				newQueue = append(newQueue, w)
 			}
-			if len(newQueue) == 0 {
-				delete(ls.waiters, key)
-			} else {
-				ls.waiters[key] = newQueue
-			}
-			return ""
 		}
+		if len(newQueue) == 0 {
+			delete(ls.waiters, key)
+		} else {
+			ls.waiters[key] = newQueue
+		}
+		ls.mutex.Unlock()
+		return "" // empty string indicates timeout
 	}
 }
 
