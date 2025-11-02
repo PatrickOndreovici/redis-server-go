@@ -274,6 +274,12 @@ func main() {
 			}
 			return res, nil
 		},
+		"BLPOP": func(args []string) (CommandResult, error) {
+			if len(args) < 2 {
+				return "", errors.New("ERR wrong number of arguments for 'BLPOP'")
+			}
+
+		}
 	}
 
 	fmt.Println("Server running on port 6379")
