@@ -1,4 +1,4 @@
-package lists
+package store
 
 import (
 	"sync"
@@ -13,7 +13,7 @@ type Waiter struct {
 }
 
 type ListsStore struct {
-	mutex   sync.Mutex
+	mutex   sync.RWMutex
 	data    map[string][]string
 	waiters map[string][]*Waiter
 }
