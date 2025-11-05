@@ -9,7 +9,7 @@ import (
 )
 
 func RPush(args []string, store *store.ListsStore) (protocol.RespValue, *protocol.Error) {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return nil, &protocol.Error{Message: "ERR wrong number of arguments for 'RPUSH'"}
 	}
 	key := args[0]
