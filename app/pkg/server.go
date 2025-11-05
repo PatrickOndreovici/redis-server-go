@@ -92,6 +92,14 @@ func (s *Server) handleConnection(rp *protocol.RespProtocol) {
 		case "BLPOP":
 			resp, respErr = handler.BLPop(args, s.Store.Lists)
 
+		case "TYPE":
+			_, ok := s.Store.KV.Get(args[1])
+			if ok {
+				resp = &protocol.SimpleString{Data: "string"}
+			} else {
+				resp = &protocol.SimpleString{Data: "none"}
+			}
+
 		default:
 			respErr = &protocol.Error{Message: fmt.Sprintf("ERR unknown command '%s'", cmd)}
 		}
