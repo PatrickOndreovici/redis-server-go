@@ -32,6 +32,9 @@ type Array struct {
 }
 
 func (a *Array) ToBytes() []byte {
+	if a.Data == nil {
+		return []byte("*-1\r\n")
+	}
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("*%d\r\n", len(a.Data)))
 	for _, v := range a.Data {

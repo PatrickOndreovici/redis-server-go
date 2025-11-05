@@ -91,7 +91,7 @@ func BLPop(args []string, store *store.ListsStore) (protocol.RespValue, *protoco
 	value := store.BLPop(key, timeout)
 	if value == "" {
 		// Timed out — return null bulk string (as Redis does)
-		return &protocol.NullBulkString{}, nil
+		return &protocol.Array{}, nil
 	}
 
 	// Redis returns an array of [key, value] when BLPOP succeeds
