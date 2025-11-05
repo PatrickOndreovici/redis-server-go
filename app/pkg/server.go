@@ -93,10 +93,10 @@ func (s *Server) handleConnection(rp *protocol.RespProtocol) {
 			resp, respErr = handler.BLPop(args, s.Store.Lists)
 
 		case "TYPE":
-			if len(args) <= 1 {
+			if len(args) == 0 {
 				respErr = &protocol.Error{Message: "ERR wrong number of arguments for 'TYPE'"}
 			}
-			_, ok := s.Store.KV.Get(args[1])
+			_, ok := s.Store.KV.Get(args[0])
 			if ok {
 				resp = &protocol.SimpleString{Data: "string"}
 			} else {
