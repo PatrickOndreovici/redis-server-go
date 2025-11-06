@@ -15,7 +15,7 @@ func XAdd(args []string, streamStore *store.StreamStore) (protocol.RespValue, *p
 	values := make([]string, len(args)/2-1)
 	for i := 2; i < len(args); i += 2 {
 		keys[i] = args[i]
-		values[i+1] = args[i+1]
+		values[i] = args[i+1]
 	}
 
 	streamStore.Add(streamKey, &store.StreamEntry{
