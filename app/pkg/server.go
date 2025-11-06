@@ -70,6 +70,9 @@ func (s *Server) handleConnection(rp *protocol.RespProtocol) {
 
 		case "SET":
 			resp, respErr = handler.Set(args, s.Store.KV)
+			if respErr == nil {
+				s.Store.KeyTypeStore.Register(args[0], store.String)
+			}
 
 		case "GET":
 			resp, respErr = handler.Get(args, s.Store.KV)
@@ -93,18 +96,13 @@ func (s *Server) handleConnection(rp *protocol.RespProtocol) {
 			resp, respErr = handler.BLPop(args, s.Store.Lists)
 
 		case "TYPE":
-			if len(args) == 0 {
-				respErr = &protocol.Error{Message: "ERR wrong number of arguments for 'TYPE'"}
-			}
-			_, ok := s.Store.KV.Get(args[0])
-			if ok {
-				resp = &protocol.SimpleString{Data: "string"}
-			} else {
-				resp = &protocol.SimpleString{Data: "none"}
-			}
+			resp = &protocol.SimpleString{Data: s.Store.KeyTypeStore.Get(args[0])}
 		case "XADD":
 			resp, respErr = handler.XAdd(args, s.Store.StreamStore)
-			
+			if respErr == nil {
+				s.Store.KeyTypeStore.Register(args[0], store.Stream)
+			}
+
 		default:
 			respErr = &protocol.Error{Message: fmt.Sprintf("ERR unknown command '%s'", cmd)}
 		}

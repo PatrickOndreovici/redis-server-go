@@ -1,7 +1,8 @@
 package store
 
 type Store struct {
-	KV          *KVStore
-	Lists       *ListsStore
-	StreamStore *StreamStore
+	KV           *KVStore
+	Lists        *ListsStore
+	StreamStore  *StreamStore
+	KeyTypeStore *KeyTypeStore
 }
