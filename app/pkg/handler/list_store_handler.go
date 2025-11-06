@@ -70,7 +70,7 @@ func LPop(args []string, store *store.ListsStore) (protocol.RespValue, *protocol
 	}
 	res := store.LPop(key, numberOfPos)
 	if len(res) == 1 {
-		return &protocol.SimpleString{Data: res[0]}, nil
+		return &protocol.BulkString{Data: res[0]}, nil
 	}
 	return &protocol.Array{res}, nil
 }
