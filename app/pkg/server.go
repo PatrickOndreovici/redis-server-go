@@ -102,7 +102,9 @@ func (s *Server) handleConnection(rp *protocol.RespProtocol) {
 			} else {
 				resp = &protocol.SimpleString{Data: "none"}
 			}
-
+		case "XADD":
+			resp, respErr = handler.XAdd(args, s.Store.StreamStore)
+			
 		default:
 			respErr = &protocol.Error{Message: fmt.Sprintf("ERR unknown command '%s'", cmd)}
 		}
