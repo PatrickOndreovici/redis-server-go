@@ -50,16 +50,16 @@ func generateNextId(key, newId string, streamStore *store.StreamStore) (string, 
 	if err != nil {
 		return "", errors.New("ERR wrong number of arguments for 'XADD'")
 	}
+	if (ts == 0 && sequenceNumber <= 0) || ts < 0 || sequenceNumber < 0 {
+		return "", errors.New("ERR The ID specified in XADD must be greater than 0-0")
+	}
 	if !exits {
-		if (ts == 0 && sequenceNumber <= 0) || ts < 0 || sequenceNumber < 0 {
-			return "", errors.New("ERR The ID specified in XADD must be greater than 0-0")
-		}
 		return newId, nil
 	} else {
 		prevTs, _ := strconv.Atoi(strings.Split(lastId, "-")[0])
 		prevSequenceNumber, _ := strconv.Atoi(strings.Split(lastId, "-")[1])
 		if ts < prevTs {
-			return "", errors.New("ERR The ID specified in XADD must be greater than 0-0")
+			return "", errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item")
 		}
 		if ts == prevTs && sequenceNumber <= prevSequenceNumber {
 			return "", errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item")
