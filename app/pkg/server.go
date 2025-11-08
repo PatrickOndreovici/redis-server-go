@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/app/pkg/handler"
 	"github.com/codecrafters-io/redis-starter-go/app/pkg/protocol"
@@ -32,6 +33,11 @@ func (s *Server) ListenAndServe() error {
 			fmt.Println("Error accepting connection:", err)
 			continue
 		}
+		tcpConn := conn.(*net.TCPConn)
+
+		tcpConn.SetKeepAlive(true)
+
+		tcpConn.SetKeepAlivePeriod(30 * time.Second)
 		respProtocol := protocol.NewRespProtocol(conn)
 		go s.handleConnection(respProtocol)
 	}
