@@ -22,3 +22,12 @@ func (s *StreamStore) Add(key string, entry *StreamEntry) {
 	defer s.rwm.Unlock()
 	s.Data[key] = append(s.Data[key], entry)
 }
+
+func (s *StreamStore) GetLastId(key string) (string, bool) {
+	s.rwm.RLock()
+	defer s.rwm.RUnlock()
+	if len(s.Data[key]) == 0 {
+		return "", false
+	}
+	return s.Data[key][len(s.Data[key])-1].Id, true
+}
