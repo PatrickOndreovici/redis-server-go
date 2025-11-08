@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -21,10 +22,10 @@ func XAdd(args []string, streamStore *store.StreamStore) (protocol.RespValue, *p
 		values[i-2] = args[i+1]
 	}
 
-	generatedId, ok := generateNextId(streamKey, Id, streamStore)
+	generatedId, err := generateNextId(streamKey, Id, streamStore)
 
-	if !ok {
-		return nil, &protocol.Error{Message: "ERR The ID specified in XADD is equal or smaller than the target stream top item"}
+	if err != nil {
+		return nil, &protocol.Error{Message: err.Error()}
 	}
 	streamStore.Add(streamKey, &store.StreamEntry{
 		Id:     generatedId,
@@ -35,34 +36,34 @@ func XAdd(args []string, streamStore *store.StreamStore) (protocol.RespValue, *p
 	return &protocol.BulkString{Data: Id}, nil
 }
 
-func generateNextId(key, newId string, streamStore *store.StreamStore) (string, bool) {
+func generateNextId(key, newId string, streamStore *store.StreamStore) (string, error) {
 	lastId, exits := streamStore.GetLastId(key)
 	splittedIds := strings.Split(newId, "-")
 	if len(splittedIds) != 2 {
-		return "", false
+		return "", errors.New("ERR wrong number of arguments for 'XADD'")
 	}
 	ts, err := strconv.Atoi(splittedIds[0])
 	if err != nil {
-		return "", false
+		return "", errors.New("ERR wrong number of arguments for 'XADD'")
 	}
 	sequenceNumber, err := strconv.Atoi(splittedIds[1])
 	if err != nil {
-		return "", false
+		return "", errors.New("ERR wrong number of arguments for 'XADD'")
 	}
 	if !exits {
 		if (ts == 0 && sequenceNumber <= 0) || ts < 0 || sequenceNumber < 0 {
-			return "", false
+			return "", errors.New("ERR The ID specified in XADD must be greater than 0-0")
 		}
-		return newId, true
+		return newId, nil
 	} else {
 		prevTs, _ := strconv.Atoi(strings.Split(lastId, "-")[0])
 		prevSequenceNumber, _ := strconv.Atoi(strings.Split(lastId, "-")[1])
 		if ts < prevTs {
-			return "", false
+			return "", errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item")
 		}
 		if ts == prevTs && sequenceNumber <= prevSequenceNumber {
-			return "", false
+			return "", errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item\"")
 		}
-		return newId, true
+		return newId, nil
 	}
 }
