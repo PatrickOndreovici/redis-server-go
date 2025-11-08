@@ -24,7 +24,7 @@ func XAdd(args []string, streamStore *store.StreamStore) (protocol.RespValue, *p
 	generatedId, ok := generateNextId(streamKey, Id, streamStore)
 
 	if !ok {
-		return nil, &protocol.Error{Message: "ERR wrong number of arguments for 'XADD'"}
+		return nil, &protocol.Error{Message: "ERR The ID specified in XADD is equal or smaller than the target stream top item"}
 	}
 	streamStore.Add(streamKey, &store.StreamEntry{
 		Id:     generatedId,
