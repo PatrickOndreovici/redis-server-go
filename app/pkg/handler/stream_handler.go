@@ -62,7 +62,7 @@ func generateNextId(key, newId string, streamStore *store.StreamStore) (string, 
 			return "", errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item")
 		}
 		if ts == prevTs && sequenceNumber <= prevSequenceNumber {
-			return "", errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item\"")
+			return "", errors.New("ERR The ID specified in XADD is equal or smaller than the target stream top item")
 		}
 		return newId, nil
 	}
