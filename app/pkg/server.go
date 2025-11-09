@@ -103,6 +103,8 @@ func (s *Server) handleConnection(rp *protocol.RespProtocol) {
 			if respErr == nil {
 				s.Store.KeyTypeStore.Register(args[0], store.Stream)
 			}
+		case "XRANGE":
+			resp, respErr = handler.XRange(args, s.Store.StreamStore)
 
 		default:
 			respErr = &protocol.Error{Message: fmt.Sprintf("ERR unknown command '%s'", cmd)}
