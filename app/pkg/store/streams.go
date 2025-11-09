@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -41,6 +42,7 @@ func (s *StreamStore) XRange(streamKey, start, end string) ([]*StreamEntry, bool
 	s.rwm.RLock()
 	defer s.rwm.RUnlock()
 	arr := s.Data[streamKey]
+	fmt.Printf("TEST")
 	if len(arr) == 0 {
 		return nil, false
 	}
