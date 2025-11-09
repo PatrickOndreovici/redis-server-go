@@ -54,7 +54,7 @@ func (s *StreamStore) XRange(streamKey, start, end string) ([]*StreamEntry, bool
 	if startIdx == endIdx {
 		return nil, false
 	}
-	res := make([]*StreamEntry, endIdx-startIdx)
+	res := make([]*StreamEntry, endIdx-startIdx+1)
 	for i := range res {
 		entry := *arr[startIdx+i]
 		res[i] = &entry
