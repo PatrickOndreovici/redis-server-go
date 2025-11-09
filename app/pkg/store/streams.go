@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -41,26 +40,42 @@ func (s *StreamStore) GetLastId(key string) (string, bool) {
 func (s *StreamStore) XRange(streamKey, start, end string) ([]*StreamEntry, bool) {
 	s.rwm.RLock()
 	defer s.rwm.RUnlock()
+
 	arr := s.Data[streamKey]
-	fmt.Printf("TEST")
 	if len(arr) == 0 {
-		return nil, false
+		return []*StreamEntry{}, true // Empty stream is valid, not an error
 	}
+
+	// Find first entry >= start
 	startIdx := sort.Search(len(arr), func(i int) bool {
 		return compareIds(arr[i].Id, start) >= 0
 	})
 
+	// Find first entry > end
 	endIdx := sort.Search(len(arr), func(i int) bool {
 		return compareIds(arr[i].Id, end) > 0
-	}) - 1
-	if startIdx == endIdx {
-		return nil, false
+	})
+
+	// Adjust endIdx to be inclusive (last valid index)
+	if endIdx == 0 {
+		// All elements are > end, so nothing matches
+		return []*StreamEntry{}, true
 	}
-	res := make([]*StreamEntry, endIdx-startIdx)
-	for i := range res {
+	endIdx-- // Now endIdx points to last element <= end
+
+	// Check if range is valid
+	if startIdx > endIdx || startIdx >= len(arr) {
+		return []*StreamEntry{}, true // No elements in range
+	}
+
+	// Build result (inclusive range)
+	rangeSize := endIdx - startIdx + 1
+	res := make([]*StreamEntry, rangeSize)
+	for i := 0; i < rangeSize; i++ {
 		entry := *arr[startIdx+i]
 		res[i] = &entry
 	}
+
 	return res, true
 }
 
