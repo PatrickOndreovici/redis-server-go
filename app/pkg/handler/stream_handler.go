@@ -131,3 +131,48 @@ func generateNextId(key, newId string, streamStore *store.StreamStore) (string, 
 
 	return newId, nil
 }
+
+func XRange(args []string, streamStore *store.StreamStore) (protocol.RespValue, *protocol.Error) {
+	if len(args) < 3 {
+		return nil, &protocol.Error{Message: "ERR wrong number of arguments for 'XRANGE'"}
+	}
+	streamKey := args[0]
+	start := args[1]
+	end := args[2]
+
+	if !strings.Contains(start, "-") {
+		start += "-0"
+	}
+	if !strings.Contains(end, "-") {
+		end += "-18446744073709551615"
+	}
+
+	results, ok := streamStore.XRange(streamKey, start, end)
+	if !ok {
+		return nil, &protocol.Error{Message: "ERR XRange failed"}
+	}
+
+	outerArray := make([]protocol.RespValue, len(results))
+
+	for i, entry := range results {
+		kvArray := make([]protocol.RespValue, len(entry.Keys)+len(entry.Values))
+		idx := 0
+		for j := 0; j < len(entry.Keys); j++ {
+			kvArray[idx] = &protocol.BulkString{Data: entry.Keys[j]}
+			idx++
+			kvArray[idx] = &protocol.BulkString{Data: entry.Values[j]}
+			idx++
+		}
+
+		entryArray := &protocol.Array{
+			Elements: []protocol.RespValue{
+				&protocol.BulkString{Data: entry.Id},
+				&protocol.Array{Elements: kvArray},
+			},
+		}
+
+		outerArray[i] = entryArray
+	}
+
+	return &protocol.Array{Elements: outerArray}, nil
+}

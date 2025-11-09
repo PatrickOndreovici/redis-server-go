@@ -28,18 +28,21 @@ func (s *BulkString) ToBytes() []byte {
 }
 
 type Array struct {
-	Data []string
+	Elements []RespValue // Can hold any RespValue (strings, arrays, integers, etc.)
 }
 
 func (a *Array) ToBytes() []byte {
-	if a.Data == nil {
+	if a.Elements == nil {
 		return []byte("*-1\r\n")
 	}
+
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("*%d\r\n", len(a.Data)))
-	for _, v := range a.Data {
-		sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(v), v))
+	sb.WriteString(fmt.Sprintf("*%d\r\n", len(a.Elements)))
+
+	for _, elem := range a.Elements {
+		sb.Write(elem.ToBytes())
 	}
+
 	return []byte(sb.String())
 }
 

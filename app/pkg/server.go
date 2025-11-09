@@ -32,7 +32,7 @@ func (s *Server) ListenAndServe() error {
 			fmt.Println("Error accepting connection:", err)
 			continue
 		}
-		
+
 		respProtocol := protocol.NewRespProtocol(conn)
 		go s.handleConnection(respProtocol)
 	}
