@@ -32,7 +32,12 @@ func LRange(args []string, store *store.ListsStore) (protocol.RespValue, *protoc
 	}
 
 	res := store.LRange(key, start, end)
-	return &protocol.Array{res}, nil
+	elements := make([]protocol.RespValue, len(res))
+	for i, v := range res {
+		elements[i] = &protocol.BulkString{Data: v}
+	}
+
+	return &protocol.Array{Elements: elements}, nil
 }
 
 func LPush(args []string, store *store.ListsStore) (protocol.RespValue, *protocol.Error) {
@@ -72,7 +77,11 @@ func LPop(args []string, store *store.ListsStore) (protocol.RespValue, *protocol
 	if len(res) == 1 {
 		return &protocol.BulkString{Data: res[0]}, nil
 	}
-	return &protocol.Array{res}, nil
+	elements := make([]protocol.RespValue, len(res))
+	for i, v := range res {
+		elements[i] = &protocol.BulkString{Data: v}
+	}
+	return &protocol.Array{Elements: elements}, nil
 }
 
 func BLPop(args []string, store *store.ListsStore) (protocol.RespValue, *protocol.Error) {
@@ -90,10 +99,13 @@ func BLPop(args []string, store *store.ListsStore) (protocol.RespValue, *protoco
 
 	value := store.BLPop(key, timeout)
 	if value == "" {
-		// Timed out — return null bulk string (as Redis does)
 		return &protocol.Array{}, nil
 	}
 
-	// Redis returns an array of [key, value] when BLPOP succeeds
-	return &protocol.Array{Data: []string{key, value}}, nil
+	return &protocol.Array{
+		Elements: []protocol.RespValue{
+			&protocol.BulkString{Data: key},
+			&protocol.BulkString{Data: value},
+		},
+	}, nil
 }
