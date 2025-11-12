@@ -176,3 +176,56 @@ func XRange(args []string, streamStore *store.StreamStore) (protocol.RespValue, 
 
 	return &protocol.Array{Elements: outerArray}, nil
 }
+
+func XReadStreams(args []string, streamStore *store.StreamStore) (protocol.RespValue, *protocol.Error) {
+	if len(args) < 2 || len(args)%2 == 1 {
+		return nil, &protocol.Error{Message: "ERR wrong number of arguments for 'XREAD'"}
+	}
+
+	keys := make([]string, len(args)/2)
+	ids := make([]string, len(args)/2)
+
+	for i := 0; i < len(args)/2; i++ {
+		keys[i] = args[i]
+		ids[i] = args[(len(args)/2)+i]
+	}
+
+	results := streamStore.XReadStreams(keys, ids)
+	respResponse := &protocol.Array{}
+	respResponse.Elements = make([]protocol.RespValue, len(results))
+	for i := 0; i < len(results); i++ {
+		respResponse.Elements[i] = mapStreamToRespArray(args[i], results[i])
+	}
+
+	return respResponse, nil
+}
+
+func mapStreamToRespArray(streamKey string, stream []*store.StreamEntry) *protocol.Array {
+	streamArray := make([]protocol.RespValue, len(stream))
+
+	for i, entry := range stream {
+		// Build inner key-value array: ["temperature", "95"]
+		kvArray := make([]protocol.RespValue, len(entry.Keys)*2)
+		for j := 0; j < len(entry.Keys); j++ {
+			kvArray[j*2] = &protocol.BulkString{Data: entry.Keys[j]}
+			kvArray[j*2+1] = &protocol.BulkString{Data: entry.Values[j]}
+		}
+
+		// Each entry = ["0-1", ["temperature", "95"]]
+		entryArray := &protocol.Array{
+			Elements: []protocol.RespValue{
+				&protocol.BulkString{Data: entry.Id},
+				&protocol.Array{Elements: kvArray},
+			},
+		}
+		streamArray[i] = entryArray
+	}
+
+	// Whole stream: ["stream_key", [ ["0-1", ["temperature", "95"]] ]]
+	return &protocol.Array{
+		Elements: []protocol.RespValue{
+			&protocol.BulkString{Data: streamKey},
+			&protocol.Array{Elements: streamArray},
+		},
+	}
+}

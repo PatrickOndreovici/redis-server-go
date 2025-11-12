@@ -85,3 +85,34 @@ func compareIds(a, b string) int {
 	}
 	return 0
 }
+
+func (s *StreamStore) XReadStreams(streamKeys, ids []string) [][]*StreamEntry {
+	s.rwm.RLock()
+	defer s.rwm.RUnlock()
+	n := len(streamKeys)
+	wg := sync.WaitGroup{}
+	results := make([][]*StreamEntry, n)
+	index := 0
+	for i := 0; i < n; i++ {
+		streamKey := streamKeys[i]
+		id := ids[i]
+		wg.Add(1)
+		go s.XReadStream(streamKey, id, index, results, &wg)
+		index++
+	}
+	wg.Wait()
+	return results
+}
+
+func (s *StreamStore) XReadStream(streamKey, id string, index int, results [][]*StreamEntry, wg *sync.WaitGroup) {
+	arr := s.Data[streamKey]
+	if len(arr) == 0 {
+		results[index] = nil
+		return
+	}
+	idx := sort.Search(len(arr), func(i int) bool {
+		return compareIds(arr[i].Id, id) > 0
+	})
+	results[index] = arr[idx:]
+	wg.Done()
+}

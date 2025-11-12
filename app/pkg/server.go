@@ -53,7 +53,16 @@ func (s *Server) handleConnection(rp *protocol.RespProtocol) {
 		}
 
 		cmd := strings.ToUpper(input[0])
-		args := input[1:]
+		startIndex := 1
+		if cmd == "XREAD" {
+			if len(input) < 2 {
+				fmt.Println("ERR XREAD command not specified")
+				return
+			}
+			cmd += " " + input[1]
+			startIndex = 2
+		}
+		args := input[startIndex:]
 
 		var resp protocol.RespValue
 		var respErr *protocol.Error
@@ -105,7 +114,8 @@ func (s *Server) handleConnection(rp *protocol.RespProtocol) {
 			}
 		case "XRANGE":
 			resp, respErr = handler.XRange(args, s.Store.StreamStore)
-
+		case "XREAD STREAMS":
+			resp, respErr = handler.XReadStreams(args, s.Store.StreamStore)
 		default:
 			respErr = &protocol.Error{Message: fmt.Sprintf("ERR unknown command '%s'", cmd)}
 		}
